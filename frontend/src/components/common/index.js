@@ -1,6 +1,7 @@
 // Export all common components from a single entry point
 export { default as Button, buttonVariants, buttonSizes } from './Button';
 export { default as Input, inputSizes } from './Input';
+export { default as LocationAutocompleteInput } from './LocationAutocompleteInput';
 export { 
   default as Card, 
   CardHeader, 
