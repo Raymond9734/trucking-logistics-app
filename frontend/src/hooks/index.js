@@ -196,8 +196,18 @@ export function useMediaQuery(query) {
   return matches;
 }
 
+// Location-related hooks
+export {
+  useGeoLocation,
+  useLocationAutocomplete,
+  useReverseGeocode,
+  useLocationWithAddress,
+} from './locationHooks';
+
+// Country detection hook
+export { useCountryDetection } from './useCountryDetection';
+
 // Hooks specific to trucking logistics (to be implemented in Phase 2):
 // export function useRouteCalculation() { ... }
 // export function useHOSCompliance() { ... }
 // export function useELDLogging() { ... }
-// export function useGeoLocation() { ... }
