@@ -7,8 +7,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Leaflet CSS for maps */
-@import 'leaflet/dist/leaflet.css';
+/* Map and form libraries CSS */
+/* Note: In production, these would be imported via CDN or npm packages */
+/* @import 'leaflet/dist/leaflet.css'; */
 
 /* Base layer - Global styles */
 @layer base {
