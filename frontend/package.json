@@ -12,7 +12,12 @@
   "dependencies": {
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "clsx": "^2.0.0"
+    "clsx": "^2.0.0",
+    "react-leaflet": "^4.2.1",
+    "leaflet": "^1.9.4",
+    "react-hook-form": "^7.48.2",
+    "date-fns": "^3.0.6",
+    "lucide-react": "^0.300.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
