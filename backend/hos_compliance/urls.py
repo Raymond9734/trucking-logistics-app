@@ -73,62 +73,35 @@ urlpatterns = [
          name='hos-violations-resolve'),
 ]
 
-# URL patterns for API documentation purposes
-hos_patterns = [
-    # GET endpoints
-    path('status/', 
-         'List all HOS statuses with optional filtering'),
-    path('status/<uuid:id>/', 
-         'Retrieve specific HOS status'),
-    path('status/by-trip/?trip_id=<uuid>', 
-         'Get HOS status for specific trip'),
-    
-    path('violations/', 
-         'List compliance violations with optional filtering'),
-    path('violations/<uuid:id>/', 
-         'Retrieve specific violation'),
-    path('violations/by-trip/?trip_id=<uuid>', 
-         'Get violations for specific trip'),
-    
-    path('rest-breaks/', 
-         'List rest breaks with optional filtering'),
-    path('rest-breaks/<uuid:id>/', 
-         'Retrieve specific rest break'),
-    
-    path('reports/trip/?trip_id=<uuid>', 
-         'Generate comprehensive compliance report for trip'),
-    
-    # POST endpoints
-    path('calculate/', 
-         'Calculate HOS compliance for given parameters'),
-    path('validate-compliance/', 
-         'Validate current HOS status against regulations'),
-    path('calculate-required-rest/', 
-         'Calculate required rest time for compliance'),
-    path('plan-trip/', 
-         'Plan HOS compliance for upcoming trip'),
-    
-    path('duty-status/update/', 
-         'Update driver duty status and recalculate HOS'),
-    path('rest-breaks/plan/', 
-         'Plan required breaks for a trip'),
-    
-    path('status/<uuid:id>/recalculate/', 
-         'Recalculate specific HOS status'),
-    path('violations/<uuid:id>/resolve/', 
-         'Mark violation as resolved'),
-    
-    # PUT/PATCH endpoints
-    path('status/<uuid:id>/', 
-         'Update specific HOS status'),
-    path('violations/<uuid:id>/', 
-         'Update specific violation'),
-    path('rest-breaks/<uuid:id>/', 
-         'Update specific rest break'),
-    
-    # DELETE endpoints
-    path('violations/<uuid:id>/', 
-         'Delete specific violation'),
-    path('rest-breaks/<uuid:id>/', 
-         'Delete specific rest break'),
-]
+# API Documentation - Available Endpoints:
+"""
+GET Endpoints:
+- /api/hos/status/ - List all HOS statuses with optional filtering
+- /api/hos/status/<uuid:id>/ - Retrieve specific HOS status  
+- /api/hos/status/by-trip/?trip_id=<uuid> - Get HOS status for specific trip
+- /api/hos/violations/ - List compliance violations with optional filtering
+- /api/hos/violations/<uuid:id>/ - Retrieve specific violation
+- /api/hos/violations/by-trip/?trip_id=<uuid> - Get violations for specific trip
+- /api/hos/rest-breaks/ - List rest breaks with optional filtering
+- /api/hos/rest-breaks/<uuid:id>/ - Retrieve specific rest break
+- /api/hos/reports/trip/?trip_id=<uuid> - Generate comprehensive compliance report for trip
+
+POST Endpoints:
+- /api/hos/calculate/ - Calculate HOS compliance for given parameters
+- /api/hos/validate-compliance/ - Validate current HOS status against regulations
+- /api/hos/calculate-required-rest/ - Calculate required rest time for compliance
+- /api/hos/plan-trip/ - Plan HOS compliance for upcoming trip
+- /api/hos/duty-status/update/ - Update driver duty status and recalculate HOS
+- /api/hos/rest-breaks/plan/ - Plan required breaks for a trip
+- /api/hos/status/<uuid:id>/recalculate/ - Recalculate specific HOS status
+- /api/hos/violations/<uuid:id>/resolve/ - Mark violation as resolved
+
+PUT/PATCH Endpoints:
+- /api/hos/status/<uuid:id>/ - Update specific HOS status
+- /api/hos/violations/<uuid:id>/ - Update specific violation
+- /api/hos/rest-breaks/<uuid:id>/ - Update specific rest break
+
+DELETE Endpoints:
+- /api/hos/violations/<uuid:id>/ - Delete specific violation
+- /api/hos/rest-breaks/<uuid:id>/ - Delete specific rest break
+"""
