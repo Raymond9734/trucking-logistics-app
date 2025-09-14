@@ -104,9 +104,9 @@ const AppLayout = ({ children, currentHours = 0, maxHours = 70, complianceStatus
             />
             <NavTab 
               icon={Clock} 
-              label="HOS Tracker" 
-              active={activeTab === 'tracker'}
-              onClick={() => onTabChange?.('tracker')}
+              label="Compliance" 
+              active={activeTab === 'compliance'}
+              onClick={() => onTabChange?.('compliance')}
             />
           </div>
         </div>
