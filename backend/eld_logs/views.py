@@ -14,6 +14,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
+from rest_framework.views import APIView
 
 from .models import DailyLog, DutyStatusRecord, LogSheet
 from .serializers import (
@@ -38,6 +39,13 @@ from routes.models import Trip
 logger = logging.getLogger(__name__)
 
 
+class HealthCheckView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        return Response({"status": "ok"})
+
+
 class DailyLogViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Daily Logs operations.
@@ -53,11 +61,6 @@ class DailyLogViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Filter queryset based on query parameters."""
         queryset = super().get_queryset()
-        
-        # Filter by trip ID
-        trip_id = self.request.query_params.get('trip_id')
-        if trip_id:
-            queryset = queryset.filter(trip_id=trip_id)
         
         # Filter by date range
         start_date = self.request.query_params.get('start_date')
@@ -144,6 +147,7 @@ class DailyLogViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def by_trip(self, request):
         """Get all daily logs for a specific trip."""
+        logger.info(f"by_trip called with query_params: {request.query_params}")
         trip_id = request.query_params.get('trip_id')
         if not trip_id:
             return Response(
@@ -152,6 +156,7 @@ class DailyLogViewSet(viewsets.ModelViewSet):
             )
         
         logs = self.get_queryset().filter(trip_id=trip_id)
+        logger.info(f"Found {logs.count()} logs for trip_id: {trip_id}")
         serializer = self.get_serializer(logs, many=True)
         
         return Response({
