@@ -296,12 +296,12 @@ export const apiService = {
      * Get daily logs for a specific trip
      */
     getDailyLogsByTrip: (tripId) => 
-      apiClient.get('/eld/daily-logs/by-trip/', { params: { trip_id: tripId } }),
+      apiClient.get('/eld/daily-logs/by-trip', { params: { trip_id: tripId } }),
     
     /**
      * Get daily logs within date range
      */
-    getDailyLogs: (params = {}) => apiClient.get('/eld/daily-logs/', { params }),
+    getDailyLogs: (params = {}) => apiClient.get('/eld/daily-logs', { params }),
     
     /**
      * Create a new daily log entry
