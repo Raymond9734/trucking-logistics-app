@@ -9,12 +9,11 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  AppLayout,
-  TripPlanningForm,
-  InteractiveMap, 
-  ELDLogSheet,
-  HOSTracker
+import {
+AppLayout,
+TripPlanningForm,
+InteractiveMap, 
+ELDLogSheet
 } from './components';
 import { apiService, apiUtils } from './services';
 import './App.css';
@@ -188,10 +187,10 @@ function App() {
 
   return (
     <AppLayout 
-      currentHours={currentHours}
-      complianceStatus={complianceStatus}
-      activeTab={activeTab}
-      onTabChange={setActiveTab}
+    currentHours={currentHours}
+    complianceStatus={complianceStatus}
+    activeTab={activeTab}
+    onTabChange={setActiveTab}
     >
       {activeTab === 'planning' && (
         <div className="space-y-8">
@@ -319,24 +318,54 @@ function App() {
         </div>
       )}
 
-      {activeTab === 'tracker' && (
+      {activeTab === 'compliance' && (
         <div className="space-y-8">
-          {/* HOS Tracker Header */}
+          {/* Compliance Status Overview */}
           <div className="text-center space-y-2">
             <h2 className="text-2xl font-bold text-neutral-900">
-              Hours of Service Tracker
+              HOS Compliance Status
             </h2>
             <p className="text-neutral-600">
-              Real-time HOS compliance monitoring and 8-day rolling totals
+              Current hours of service compliance summary
             </p>
           </div>
 
-          {/* HOS Tracker with Real Data */}
-          <HOSTracker 
-            currentHours={currentHours}
-            tripData={tripData}
-            hosAnalysis={tripData?.hosAnalysis}
-          />
+          {/* Simple Compliance Display */}
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white p-8 rounded-lg shadow-sm border border-neutral-200">
+              <div className="text-center space-y-6">
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-neutral-900">Current Cycle Status</h3>
+                  <div className={`text-4xl font-bold ${
+                    currentHours >= 70 ? 'text-error-600' : 
+                    currentHours >= 60 ? 'text-warning-600' : 
+                    'text-success-600'
+                  }`}>
+                    {currentHours.toFixed(1)} / 70 hours
+                  </div>
+                  <p className="text-neutral-600">
+                    Hours used in current 8-day cycle
+                  </p>
+                </div>
+                
+                <div className={`px-6 py-3 rounded-full text-lg font-medium ${
+                  currentHours >= 70 ? 'bg-error-100 text-error-800' : 
+                  currentHours >= 60 ? 'bg-warning-100 text-warning-800' : 
+                  'bg-success-100 text-success-800'
+                }`}>
+                  {currentHours >= 70 ? 'VIOLATION - NO DRIVING PERMITTED' : 
+                   currentHours >= 60 ? 'WARNING - APPROACHING LIMIT' : 
+                   'COMPLIANT - SAFE TO DRIVE'}
+                </div>
+                
+                <div className="text-sm text-neutral-600">
+                  <p className="mb-2"><strong>Hours Remaining:</strong> {Math.max(0, 70 - currentHours).toFixed(1)} hours</p>
+                  <p><strong>Daily Driving Limit:</strong> 11 hours after 10+ hours off duty</p>
+                  <p><strong>Daily Duty Limit:</strong> 14-hour window for driving</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </AppLayout>
