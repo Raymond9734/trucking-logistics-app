@@ -6,12 +6,12 @@ and creating route plans with HOS compliance.
 """
 
 import logging
+import json
 from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
 from ..models import Trip, Route, Waypoint
 from hos_compliance.models import HOSStatus, RestBreak
-from eld_logs.models import DailyLog
 from .mapping_service import MappingService
 from common.validators import (
     get_fuel_stop_interval_miles,
@@ -78,9 +78,6 @@ class RouteCalculatorService:
                 # Step 6: Plan required rest breaks
                 rest_breaks = self._plan_rest_breaks(trip, route)
 
-                # Step 7: Generate initial ELD log structure
-                self._initialize_eld_logs(trip)
-
                 # Step 8: Update trip with calculated results
                 self._finalize_trip_calculation(trip, route)
 
@@ -96,8 +93,14 @@ class RouteCalculatorService:
         trip = Trip.objects.create(
             driver_name=trip_data.get("driver_name", "Driver"),
             current_location=trip_data["current_location"],
+            current_lat=trip_data.get("current_lat"),
+            current_lng=trip_data.get("current_lng"),
             pickup_location=trip_data["pickup_location"],
+            pickup_lat=trip_data.get("pickup_lat"),
+            pickup_lng=trip_data.get("pickup_lng"),
             dropoff_location=trip_data["dropoff_location"],
+            dropoff_lat=trip_data.get("dropoff_lat"),
+            dropoff_lng=trip_data.get("dropoff_lng"),
             current_cycle_used=trip_data["current_cycle_used"],
             status=Trip.StatusChoices.PLANNED,
         )
@@ -107,12 +110,20 @@ class RouteCalculatorService:
 
     def _calculate_base_route(self, trip):
         """Calculate base route using mapping service."""
-        locations = [trip.current_location, trip.pickup_location, trip.dropoff_location]
+        locations = []
+        if trip.current_lat and trip.current_lng and trip.pickup_lat and trip.pickup_lng and trip.dropoff_lat and trip.dropoff_lng:
+            locations = [
+                {"lat": trip.current_lat, "lng": trip.current_lng},
+                {"lat": trip.pickup_lat, "lng": trip.pickup_lng},
+                {"lat": trip.dropoff_lat, "lng": trip.dropoff_lng},
+            ]
+        else:
+            locations = [trip.current_location, trip.pickup_location, trip.dropoff_location]
 
         route_info = self.mapping_service.calculate_route(locations)
 
-        # Add coordinates to trip if returned by mapping service
-        if route_info.get("coordinates"):
+        # Add coordinates to trip if returned by mapping service and not already present
+        if not (trip.current_lat and trip.current_lng) and route_info.get("coordinates"):
             coords = route_info["coordinates"]
             if len(coords) >= 3:
                 trip.current_lat = coords[0]["lat"]
@@ -127,11 +138,16 @@ class RouteCalculatorService:
 
     def _create_route_record(self, trip, route_info):
         """Create route database record."""
+        # Ensure geometry is stored as JSON string
+        geometry = route_info.get("geometry", "")
+        if geometry and not isinstance(geometry, str):
+            geometry = json.dumps(geometry)
+        
         route = Route.objects.create(
             trip=trip,
             total_distance_miles=Decimal(str(route_info["distance_miles"])),
             estimated_driving_time_minutes=route_info["duration_minutes"],
-            route_geometry=route_info.get("geometry", ""),
+            route_geometry=geometry,
             mapping_service=route_info.get("service", "openrouteservice"),
             traffic_considered=route_info.get("traffic_considered", False),
             route_profile="driving-hgv",
@@ -329,16 +345,23 @@ class RouteCalculatorService:
 
     def _create_hos_status(self, trip):
         """Create HOS status record for trip."""
+        # Calculate available hours before creating the object
+        current_cycle_hours = trip.current_cycle_used
+        available_cycle_hours = max(Decimal("0"), Decimal("70") - current_cycle_hours)
+
         hos_status = HOSStatus.objects.create(
             trip=trip,
-            current_cycle_hours=trip.current_cycle_used,
+            current_cycle_hours=current_cycle_hours,
+            available_cycle_hours=available_cycle_hours,
             current_duty_period_hours=Decimal("0"),
+            available_duty_period_hours=Decimal("14"),
             current_driving_hours=Decimal("0"),
+            available_driving_hours=Decimal("11"),
             hours_since_last_break=Decimal("0"),
             current_duty_status=HOSStatus.DutyStatus.OFF_DUTY,
         )
 
-        # Calculate available hours
+        # Recalculate to ensure all compliance flags are set correctly
         hos_status.calculate_available_hours()
 
         logger.info(f"Created HOS status for trip {trip.id}")
@@ -378,21 +401,6 @@ class RouteCalculatorService:
             )
 
         return breaks
-
-    def _initialize_eld_logs(self, trip):
-        """Initialize ELD log structure for trip."""
-        # Create initial daily log for trip start date
-        daily_log = DailyLog.objects.create(
-            trip=trip,
-            log_date=timezone.now().date(),
-            driver_name=trip.driver_name,
-            carrier_name="Trucking Company",  # Would be configurable
-            carrier_main_office_address="Main Office, State",
-            vehicle_number="TRK-001",  # Would be from driver/trip data
-        )
-
-        logger.info(f"Initialized ELD logs for trip {trip.id}")
-        return daily_log
 
     def _finalize_trip_calculation(self, trip, route):
         """Update trip with final calculated results."""
