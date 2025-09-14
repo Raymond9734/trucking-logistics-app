@@ -179,6 +179,14 @@ class TripCalculateSerializer(serializers.Serializer):
         help_text="Current cycle hours used (0-70 hours)",
     )
 
+    # Optional coordinate fields
+    current_lat = serializers.DecimalField(max_digits=12, decimal_places=8, required=False)
+    current_lng = serializers.DecimalField(max_digits=12, decimal_places=8, required=False)
+    pickup_lat = serializers.DecimalField(max_digits=12, decimal_places=8, required=False)
+    pickup_lng = serializers.DecimalField(max_digits=12, decimal_places=8, required=False)
+    dropoff_lat = serializers.DecimalField(max_digits=12, decimal_places=8, required=False)
+    dropoff_lng = serializers.DecimalField(max_digits=12, decimal_places=8, required=False)
+
     # Optional fields
     driver_name = serializers.CharField(
         max_length=100,
