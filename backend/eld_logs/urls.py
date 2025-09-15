@@ -65,7 +65,7 @@ urlpatterns = [
     ),
     # Specific daily log endpoints (alternative to router)
     path(
-        "daily-logs/by-trip/",
+        "daily-logs/by-trip",
         DailyLogViewSet.as_view({"get": "by_trip"}),
         name="daily-logs-by-trip",
     ),

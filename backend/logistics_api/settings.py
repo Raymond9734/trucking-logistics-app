@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -55,8 +56,26 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+# CORS configuration for development
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # React dev server
+    "http://localhost:3000",  # React dev server (Create React App)
+    "http://localhost:5173",  # Vite dev server
+    "http://127.0.0.1:3000",  # Alternative localhost
+    "http://127.0.0.1:5173",  # Alternative localhost for Vite
+]
+
+# Additional CORS settings for development
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
 ]
 
 ROOT_URLCONF = "logistics_api.urls"
@@ -137,3 +156,35 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# External API Configuration
+# OpenRouteService API for route calculation
+# Get your free API key from: https://openrouteservice.org/dev/#/signup
+# Free tier: 2000 requests per day, 40 requests per minute
+OPENROUTESERVICE_API_KEY = config("OPENROUTESERVICE_API_KEY", default=None)
+
+# Logging configuration
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+        "file": {
+            "class": "logging.FileHandler",
+            "filename": "debug.log",
+        },
+    },
+    "root": {
+        "handlers": ["console", "file"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "routes.services.mapping_service": {
+            "handlers": ["console", "file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+    },
+}

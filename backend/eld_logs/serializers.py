@@ -24,10 +24,17 @@ class DailyLogSerializer(serializers.ModelSerializer):
     
     trip_id = serializers.UUIDField(source='trip.id', read_only=True)
     duty_status_summary = serializers.SerializerMethodField()
+    duty_status_records = serializers.SerializerMethodField()
+    duty_status_changes = serializers.SerializerMethodField()  # For frontend compatibility
     certification_status = serializers.SerializerMethodField()
     compliance_violations = serializers.SerializerMethodField()
     is_complete = serializers.ReadOnlyField()
     total_hours_sum = serializers.ReadOnlyField()
+    
+    # Additional fields expected by frontend
+    total_miles = serializers.DecimalField(source='total_miles_driving_today', max_digits=6, decimal_places=1, read_only=True)
+    main_office_address = serializers.CharField(source='carrier_main_office_address', read_only=True)
+    shipping_document_number = serializers.CharField(source='shipping_document_numbers', read_only=True)
     
     class Meta:
         model = DailyLog
@@ -39,21 +46,26 @@ class DailyLogSerializer(serializers.ModelSerializer):
             'co_driver_name', 
             'carrier_name',
             'carrier_main_office_address',
+            'main_office_address',  # Frontend compatibility
             'vehicle_number',
             'trailer_number',
             'total_miles_driving_today',
+            'total_miles',  # Frontend compatibility
             'total_hours_off_duty',
             'total_hours_sleeper_berth',
             'total_hours_driving',
             'total_hours_on_duty_not_driving',
             'period_start_time',
             'shipping_document_numbers',
+            'shipping_document_number',  # Frontend compatibility
             'is_certified',
             'driver_signature_date',
             'remarks',
             'created_at',
             'updated_at',
             'duty_status_summary',
+            'duty_status_records',
+            'duty_status_changes',  # Frontend compatibility
             'certification_status',
             'compliance_violations',
             'is_complete',
@@ -77,6 +89,28 @@ class DailyLogSerializer(serializers.ModelSerializer):
     def get_certification_status(self, obj):
         """Get certification status information."""
         return obj.get_certification_status()
+    
+    def get_duty_status_records(self, obj):
+        """Get detailed duty status records for this daily log."""
+        records = obj.duty_status_records.all().order_by('sequence_number')
+        return DutyStatusRecordSerializer(records, many=True).data
+    
+    def get_duty_status_changes(self, obj):
+        """Get duty status changes formatted for frontend compatibility."""
+        records = obj.duty_status_records.all().order_by('sequence_number')
+        changes = []
+        for record in records:
+            changes.append({
+                'id': record.id,
+                'time': record.start_time.isoformat() if record.start_time else None,
+                'status': record.duty_status,
+                'status_display': record.get_duty_status_display(),
+                'location': record.location,
+                'duration_minutes': record.duration_minutes,
+                'duration_hours': round(record.duration_minutes / 60, 2) if record.duration_minutes else 0,
+                'remarks': record.remarks
+            })
+        return changes
     
     def get_compliance_violations(self, obj):
         """Get compliance validation results."""

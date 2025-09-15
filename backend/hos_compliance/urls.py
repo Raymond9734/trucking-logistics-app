@@ -60,6 +60,11 @@ urlpatterns = [
     path('status/by-trip/', 
          HOSStatusViewSet.as_view({'get': 'by_trip'}), 
          name='hos-status-by-trip'),
+    
+    # Alternative endpoint pattern that might be called by the frontend
+    path('status/by-trip/<uuid:trip_id>/', 
+         HOSStatusViewSet.as_view({'get': 'retrieve_by_trip'}), 
+         name='hos-status-by-trip-param'),
     path('status/<uuid:id>/recalculate/', 
          HOSStatusViewSet.as_view({'post': 'recalculate'}), 
          name='hos-status-recalculate'),

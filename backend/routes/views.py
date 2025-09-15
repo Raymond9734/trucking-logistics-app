@@ -54,20 +54,43 @@ class TripCalculateView(APIView):
     def post(self, request):
         """Calculate trip route and generate ELD logs."""
         try:
+            # Transform request data to fit the serializer
+            request_data = request.data.copy()
+            if 'locations' in request_data:
+                locations = request_data.pop('locations')
+                if 'current' in locations and locations['current']:
+                    request_data['current_location'] = locations['current'].get('displayName', '')
+                    if 'coordinates' in locations['current'] and locations['current']['coordinates']:
+                        request_data['current_lat'] = locations['current']['coordinates'].get('lat')
+                        request_data['current_lng'] = locations['current']['coordinates'].get('lon')
+                if 'pickup' in locations and locations['pickup']:
+                    request_data['pickup_location'] = locations['pickup'].get('displayName', '')
+                    if 'coordinates' in locations['pickup'] and locations['pickup']['coordinates']:
+                        request_data['pickup_lat'] = locations['pickup']['coordinates'].get('lat')
+                        request_data['pickup_lng'] = locations['pickup']['coordinates'].get('lon')
+                if 'dropoff' in locations and locations['dropoff']:
+                    request_data['dropoff_location'] = locations['dropoff'].get('displayName', '')
+                    if 'coordinates' in locations['dropoff'] and locations['dropoff']['coordinates']:
+                        request_data['dropoff_lat'] = locations['dropoff']['coordinates'].get('lat')
+                        request_data['dropoff_lng'] = locations['dropoff']['coordinates'].get('lon')
+
             # Validate input data
-            serializer = TripCalculateSerializer(data=request.data)
+            serializer = TripCalculateSerializer(data=request_data)
             if not serializer.is_valid():
                 logger.warning(f"Invalid trip calculation input: {serializer.errors}")
                 return Response(
                     {"error": "Invalid input data", "details": serializer.errors},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+            logger.info(f"Request DATA: {request.data}")
 
             # Extract validated data
             trip_data = serializer.validated_data
             logger.info(
                 f"Starting trip calculation for driver: {trip_data.get('driver_name', 'Unknown')}"
             )
+
+            logger.info(f"Serialized Trip DATA: {trip_data}")
 
             # Calculate route and generate ELD logs using TripPlannerService
             trip_planner = TripPlannerService()

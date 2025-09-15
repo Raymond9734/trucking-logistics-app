@@ -248,25 +248,43 @@ class DailyLogGeneratorService:
         try:
             self.logger.debug(f"Creating daily log for {log_date}")
 
-            # Create the daily log instance
-            daily_log = DailyLog.objects.create(
+            # Use get_or_create to avoid duplicate entries
+            daily_log, created = DailyLog.objects.get_or_create(
                 trip=trip,
                 log_date=log_date,
-                driver_name=trip.driver_name,
-                carrier_name="Trucking Company",  # Could be configurable
-                carrier_main_office_address="Main Office, State",  # Could be configurable
-                vehicle_number="TRUCK001",  # Could be from trip or driver profile
-                period_start_time=time(0, 0),  # Midnight start
-                shipping_document_numbers=f"Trip {trip.id.hex[:8]}",
+                defaults={
+                    'driver_name': trip.driver_name,
+                    'carrier_name': "Trucking Company",  # Could be configurable
+                    'carrier_main_office_address': "Main Office, State",  # Could be configurable
+                    'vehicle_number': "TRUCK001",  # Could be from trip or driver profile
+                    'period_start_time': time(0, 0),  # Midnight start
+                    'shipping_document_numbers': f"Trip {trip.id.hex[:8]}",
+                }
             )
+            
+            if created:
+                self.logger.info(f"Created new daily log {daily_log.id} for {log_date}")
+            else:
+                self.logger.info(f"Using existing daily log {daily_log.id} for {log_date}")
+                # Clear existing duty status records to regenerate them
+                daily_log.duty_status_records.all().delete()
 
             # Create duty status records for this date
             self._create_duty_status_records_for_date(daily_log, log_date, timeline)
 
             # Calculate totals from duty status records
             daily_log.calculate_totals()
+            
+            # Automatically generate log sheet for this daily log
+            try:
+                from .log_sheet_renderer import LogSheetRendererService
+                renderer = LogSheetRendererService()
+                log_sheet = renderer.create_log_sheet(daily_log)
+                self.logger.info(f"Generated log sheet {log_sheet.id} for daily log {daily_log.id}")
+            except Exception as e:
+                self.logger.warning(f"Failed to generate log sheet for daily log {daily_log.id}: {str(e)}")
+                # Don't fail the entire process if log sheet generation fails
 
-            self.logger.info(f"Created daily log {daily_log.id} for {log_date}")
             return daily_log
 
         except Exception as e:
@@ -447,16 +465,25 @@ class DailyLogGeneratorService:
                 log_date = start_time.date()
                 self.logger.info(f"Generating daily log from custom timeline for {log_date}")
 
-                # Create daily log
-                daily_log = DailyLog.objects.create(
+                # Create daily log using get_or_create to avoid duplicates
+                daily_log, created = DailyLog.objects.get_or_create(
                     trip=trip,
                     log_date=log_date,
-                    driver_name=trip.driver_name,
-                    carrier_name="Trucking Company",
-                    carrier_main_office_address="Main Office, State",
-                    vehicle_number="TRUCK001",
-                    period_start_time=start_time.time(),
+                    defaults={
+                        'driver_name': trip.driver_name,
+                        'carrier_name': "Trucking Company",
+                        'carrier_main_office_address': "Main Office, State",
+                        'vehicle_number': "TRUCK001",
+                        'period_start_time': start_time.time(),
+                    }
                 )
+                
+                if created:
+                    self.logger.info(f"Created new daily log {daily_log.id} for timeline {log_date}")
+                else:
+                    self.logger.info(f"Using existing daily log {daily_log.id} for timeline {log_date}")
+                    # Clear existing duty status records to regenerate them
+                    daily_log.duty_status_records.all().delete()
 
                 # Create duty status records from activities
                 sequence_order = 0
@@ -486,8 +513,17 @@ class DailyLogGeneratorService:
                 # Update totals
                 daily_log.total_miles_driving_today = total_miles
                 daily_log.calculate_totals()
+                
+                # Automatically generate log sheet for this daily log
+                try:
+                    from .log_sheet_renderer import LogSheetRendererService
+                    renderer = LogSheetRendererService()
+                    log_sheet = renderer.create_log_sheet(daily_log)
+                    self.logger.info(f"Generated log sheet {log_sheet.id} for daily log {daily_log.id}")
+                except Exception as e:
+                    self.logger.warning(f"Failed to generate log sheet for daily log {daily_log.id}: {str(e)}")
+                    # Don't fail the entire process if log sheet generation fails
 
-                self.logger.info(f"Generated daily log {daily_log.id} from custom timeline")
                 return daily_log
 
         except Exception as e:

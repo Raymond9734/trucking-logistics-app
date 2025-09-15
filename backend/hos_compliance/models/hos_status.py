@@ -64,6 +64,7 @@ class HOSStatus(models.Model):
     current_cycle_hours = models.DecimalField(
         max_digits=4, 
         decimal_places=1,
+        default=0,
         validators=[MinValueValidator(0), MaxValueValidator(70)],
         help_text="Current hours used in 8-day cycle (max 70)"
     )
@@ -71,6 +72,7 @@ class HOSStatus(models.Model):
     available_cycle_hours = models.DecimalField(
         max_digits=4, 
         decimal_places=1,
+        default=70,
         validators=[MinValueValidator(0), MaxValueValidator(70)],
         help_text="Available hours remaining in 8-day cycle"
     )
