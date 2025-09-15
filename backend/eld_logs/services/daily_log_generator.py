@@ -274,6 +274,16 @@ class DailyLogGeneratorService:
 
             # Calculate totals from duty status records
             daily_log.calculate_totals()
+            
+            # Automatically generate log sheet for this daily log
+            try:
+                from .log_sheet_renderer import LogSheetRendererService
+                renderer = LogSheetRendererService()
+                log_sheet = renderer.create_log_sheet(daily_log)
+                self.logger.info(f"Generated log sheet {log_sheet.id} for daily log {daily_log.id}")
+            except Exception as e:
+                self.logger.warning(f"Failed to generate log sheet for daily log {daily_log.id}: {str(e)}")
+                # Don't fail the entire process if log sheet generation fails
 
             return daily_log
 
@@ -503,6 +513,16 @@ class DailyLogGeneratorService:
                 # Update totals
                 daily_log.total_miles_driving_today = total_miles
                 daily_log.calculate_totals()
+                
+                # Automatically generate log sheet for this daily log
+                try:
+                    from .log_sheet_renderer import LogSheetRendererService
+                    renderer = LogSheetRendererService()
+                    log_sheet = renderer.create_log_sheet(daily_log)
+                    self.logger.info(f"Generated log sheet {log_sheet.id} for daily log {daily_log.id}")
+                except Exception as e:
+                    self.logger.warning(f"Failed to generate log sheet for daily log {daily_log.id}: {str(e)}")
+                    # Don't fail the entire process if log sheet generation fails
 
                 return daily_log
 
