@@ -12,7 +12,8 @@ import React, { useState } from 'react';
 import {
 AppLayout,
 TripPlanningForm,
-InteractiveMap, 
+InteractiveMap,
+WaypointDetails,
 ELDLogSheet
 } from './components';
 import { apiService, apiUtils } from './services';
@@ -281,13 +282,21 @@ function App() {
             </div>
 
             {/* Right Column - Interactive Route Map with Waypoints */}
-            <div>
+            <div className="space-y-6">
               <InteractiveMap 
                 tripData={tripData}
                 routeData={routeData}
                 loading={loading}
                 className=""
               />
+              
+              {/* Detailed Waypoint Information */}
+              {routeData && routeData.waypoints && routeData.waypoints.length > 0 && !loading && (
+                <WaypointDetails 
+                  waypoints={routeData.waypoints}
+                  className=""
+                />
+              )}
             </div>
           </div>
         </div>
