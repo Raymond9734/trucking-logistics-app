@@ -50,27 +50,6 @@ const dropoffIcon = createIcon('#ef4444', '🚚');
 const fuelIcon = createIcon('#8b5cf6', '⛽');
 const restIcon = createIcon('#06b6d4', '☕');
 
-// Create waypoint marker
-const createWaypointIcon = (number) => L.divIcon({
-  html: `<div style="
-    width: 22px; 
-    height: 22px; 
-    border-radius: 50%; 
-    background: #10b981; 
-    border: 2px solid white; 
-    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    color: white;
-    font-size: 10px;
-    font-family: system-ui, sans-serif;
-  ">${number}</div>`,
-  className: 'waypoint-marker',
-  iconSize: [22, 22],
-  iconAnchor: [11, 11],
-});
 
 // Component to fit map bounds to route
 const FitBounds = ({ bounds }) => {
@@ -171,81 +150,93 @@ const InteractiveMap = ({ tripData, routeData, loading = false, className = '' }
     if (!routeData && !tripData) return;
 
     console.log('🛣️ Processing route data:', routeData);
+    console.log('🎯 Processing waypoints from routeData:', routeData?.waypoints);
     console.log('🎯 Processing waypoints from tripData:', tripData?.waypoints);
 
     let coordinates = [];
 
-    // First try to get waypoints from backend
-    if (tripData?.waypoints && Array.isArray(tripData.waypoints) && tripData.waypoints.length > 0) {
-      coordinates = tripData.waypoints.map(waypoint => {
-        const lat = parseFloat(waypoint.latitude || waypoint.lat);
-        const lon = parseFloat(waypoint.longitude || waypoint.lon || waypoint.lng);
-        return [lat, lon];
-      }).filter(coord => !isNaN(coord[0]) && !isNaN(coord[1]));
-      console.log('✅ Using waypoints from backend:', coordinates.length, 'points');
-    }
-    
-    // If no waypoints, try route geometry
-    else if (routeData?.route_geometry || routeData?.geometry) {
-    try {
-    let geometry = routeData.route_geometry || routeData.geometry;
-    console.log('🔍 Raw geometry data:', geometry);
-    console.log('🔍 Geometry type:', typeof geometry);
-    
-    // Handle different geometry formats
-    if (typeof geometry === 'string') {
-    // First try to parse as JSON (GeoJSON format)
-    try {
-        const parsed = JSON.parse(geometry);
-        if (parsed.type === 'LineString' && parsed.coordinates) {
-                // GeoJSON LineString format: [[lng, lat], [lng, lat], ...]
-            coordinates = parsed.coordinates.map(coord => {
+    // PRIORITY 1: Use route geometry for detailed path (NOT waypoints)
+    if (routeData?.route_geometry || routeData?.geometry) {
+      try {
+        let geometry = routeData.route_geometry || routeData.geometry;
+        console.log('🔍 Raw geometry data:', geometry);
+        console.log('🔍 Geometry type:', typeof geometry);
+        
+        // Handle different geometry formats
+        if (typeof geometry === 'string') {
+          // First try to parse as JSON (GeoJSON format)
+          try {
+            const parsed = JSON.parse(geometry);
+            if (parsed.type === 'LineString' && parsed.coordinates) {
+              // GeoJSON LineString format: [[lng, lat], [lng, lat], ...]
+              coordinates = parsed.coordinates.map(coord => {
                 // Convert from [lng, lat] to [lat, lng] for Leaflet
-            return [parseFloat(coord[1]), parseFloat(coord[0])];
-        });
-    console.log('✅ Parsed GeoJSON LineString:', coordinates.length, 'points');
-    } else if (Array.isArray(parsed)) {
-            // Array of coordinates
-        coordinates = parsed.map(coord => [parseFloat(coord[1]), parseFloat(coord[0])]);
-            console.log('✅ Parsed coordinate array:', coordinates.length, 'points');
+                return [parseFloat(coord[1]), parseFloat(coord[0])];
+              });
+              console.log('✅ Parsed GeoJSON LineString:', coordinates.length, 'points');
+            } else if (Array.isArray(parsed)) {
+              // Array of coordinates
+              coordinates = parsed.map(coord => [parseFloat(coord[1]), parseFloat(coord[0])]);
+              console.log('✅ Parsed coordinate array:', coordinates.length, 'points');
             }
-    } catch (jsonError) {
+          } catch (jsonError) {
             // If JSON parsing fails, try WKT format
             if (geometry.startsWith('LINESTRING')) {
-                const coords = geometry.replace('LINESTRING(', '').replace(')', '');
-                    coordinates = coords.split(',').map(point => {
-                    const [lon, lat] = point.trim().split(' ').map(parseFloat);
-                        return [lat, lon]; // Leaflet uses [lat, lon]
-                        });
-                            console.log('✅ Parsed WKT LINESTRING:', coordinates.length, 'points');
-                        } else {
-                            console.warn('⚠️ Could not parse geometry string format:', jsonError.message);
-                        }
-                    }
-                } else if (typeof geometry === 'object' && geometry.type === 'LineString') {
-                    // Direct GeoJSON object
-                    coordinates = geometry.coordinates.map(coord => [parseFloat(coord[1]), parseFloat(coord[0])]);
-                    console.log('✅ Parsed GeoJSON object:', coordinates.length, 'points');
-                } else if (Array.isArray(geometry)) {
-                    // Direct array of coordinates
-                    coordinates = geometry.map(coord => [parseFloat(coord[1]), parseFloat(coord[0])]);
-                    console.log('✅ Parsed coordinate array:', coordinates.length, 'points');
-                }
-                
-                console.log('✅ Route coordinates processed:', coordinates.length, 'points');
-            } catch (error) {
-                console.error('❌ Could not parse route geometry:', error);
-                console.error('❌ Geometry data was:', routeData?.route_geometry || routeData?.geometry);
+              const coords = geometry.replace('LINESTRING(', '').replace(')', '');
+              coordinates = coords.split(',').map(point => {
+                const [lon, lat] = point.trim().split(' ').map(parseFloat);
+                return [lat, lon]; // Leaflet uses [lat, lon]
+              });
+              console.log('✅ Parsed WKT LINESTRING:', coordinates.length, 'points');
+            } else {
+              console.warn('⚠️ Could not parse geometry string format:', jsonError.message);
             }
+          }
+        } else if (typeof geometry === 'object' && geometry.type === 'LineString') {
+          // Direct GeoJSON object
+          coordinates = geometry.coordinates.map(coord => [parseFloat(coord[1]), parseFloat(coord[0])]);
+          console.log('✅ Parsed GeoJSON object:', coordinates.length, 'points');
+        } else if (Array.isArray(geometry)) {
+          // Direct array of coordinates
+          coordinates = geometry.map(coord => [parseFloat(coord[1]), parseFloat(coord[0])]);
+          console.log('✅ Parsed coordinate array:', coordinates.length, 'points');
         }
+        
+        console.log('✅ Route coordinates processed:', coordinates.length, 'points');
+      } catch (error) {
+        console.error('❌ Could not parse route geometry:', error);
+        console.error('❌ Geometry data was:', routeData?.route_geometry || routeData?.geometry);
+      }
+    }
     
-    // Fallback: create simple route line between locations
+    // FALLBACK: If no detailed geometry, create simple route line between locations
     if (coordinates.length === 0 && locations.current && locations.pickup && locations.dropoff) {
       coordinates = [locations.current, locations.pickup, locations.dropoff];
       console.log('📍 Created simple route from locations:', coordinates.length, 'points');
     }
     
+    // ADDITIONAL FALLBACK: If still no coordinates, use waypoints for basic path
+    if (coordinates.length === 0) {
+      // Only use waypoints as absolute last resort for route path
+      if (routeData?.waypoints && Array.isArray(routeData.waypoints) && routeData.waypoints.length > 0) {
+        coordinates = routeData.waypoints
+          .filter(waypoint => {
+            // Filter out waypoints with invalid coordinates (0,0 or NaN)
+            const lat = parseFloat(waypoint.latitude || waypoint.lat);
+            const lon = parseFloat(waypoint.longitude || waypoint.lon || waypoint.lng);
+            return !isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0;
+          })
+          .map(waypoint => {
+            const lat = parseFloat(waypoint.latitude || waypoint.lat);
+            const lon = parseFloat(waypoint.longitude || waypoint.lon || waypoint.lng);
+            return [lat, lon];
+          });
+        console.log('⚠️ Using waypoints as fallback for route path:', coordinates.length, 'points');
+      }
+    }
+    
     setRouteCoordinates(coordinates);
+    console.log('🗺️ Final route coordinates for polyline:', coordinates.length, 'points');
   }, [routeData, tripData, locations]);
 
   if (!tripData) {
@@ -395,36 +386,79 @@ const InteractiveMap = ({ tripData, routeData, loading = false, className = '' }
           
           
           
-          {/* Fuel and Rest Stops */}
-          {tripData.fuelStopsRequired > 0 && routeCoordinates.length > 1 && 
-            Array.from({ length: tripData.fuelStopsRequired }).map((_, index) => {
-              const position = Math.floor((index + 1) * routeCoordinates.length / (tripData.fuelStopsRequired + 1));
-              const coordinate = routeCoordinates[position];
-              
-              return coordinate ? (
-                <Marker key={`fuel-${index}`} position={coordinate} icon={fuelIcon}>
-                  <Popup>
-                    <strong>⛽ Fuel Stop {index + 1}</strong>
-                  </Popup>
-                </Marker>
-              ) : null;
-            })
-          }
-          
-          {tripData.restStopsRequired > 0 && routeCoordinates.length > 1 && 
-            Array.from({ length: tripData.restStopsRequired }).map((_, index) => {
-              const position = Math.floor((index + 1) * routeCoordinates.length / (tripData.restStopsRequired + 1));
-              const coordinate = routeCoordinates[position];
-              
-              return coordinate ? (
-                <Marker key={`rest-${index}`} position={coordinate} icon={restIcon}>
-                  <Popup>
-                    <strong>☕ Rest Break {index + 1}</strong>
-                  </Popup>
-                </Marker>
-              ) : null;
-            })
-          }
+          {/* Waypoint Markers (Fuel Stops, Rest Breaks, etc.) */}
+          {routeData?.waypoints && routeData.waypoints.map((waypoint, index) => {
+            const lat = parseFloat(waypoint.latitude);
+            const lon = parseFloat(waypoint.longitude);
+            
+            // Skip waypoints with invalid coordinates (0,0 or NaN)
+            if (isNaN(lat) || isNaN(lon) || (lat === 0 && lon === 0)) {
+              return null;
+            }
+            
+            const position = [lat, lon];
+            let icon, title, description;
+            
+            // Determine marker type based on waypoint_type
+            switch(waypoint.waypoint_type) {
+              case 'fuel_stop':
+                icon = fuelIcon;
+                title = '⛽ Fuel Stop';
+                description = waypoint.description || 'Recommended fuel stop';
+                break;
+              case 'break_30min':
+                icon = restIcon;
+                title = '☕ 30-Min Break';
+                description = waypoint.description || 'Mandatory 30-minute rest break';
+                break;
+              case 'break_10hour':
+                icon = restIcon;
+                title = '🛏️ 10-Hour Rest';
+                description = waypoint.description || 'Mandatory 10-hour rest period';
+                break;
+              case 'origin':
+                icon = currentLocationIcon;
+                title = '📍 Origin';
+                description = waypoint.description || 'Trip starting point';
+                break;
+              case 'pickup':
+                icon = pickupIcon;
+                title = '📦 Pickup';
+                description = waypoint.description || 'Cargo pickup location';
+                break;
+              case 'dropoff':
+                icon = dropoffIcon;
+                title = '🚚 Delivery';
+                description = waypoint.description || 'Cargo delivery location';
+                break;
+              default:
+                icon = restIcon;
+                title = '📍 Waypoint';
+                description = waypoint.description || 'Route waypoint';
+            }
+            
+            return (
+              <Marker key={waypoint.id || `waypoint-${index}`} position={position} icon={icon}>
+                <Popup>
+                  <div className="text-center min-w-32">
+                    <strong>{title}</strong>
+                    <br />
+                    <span className="text-xs text-neutral-600">
+                      {description}
+                    </span>
+                    {waypoint.estimated_stop_duration_minutes && (
+                      <>
+                        <br />
+                        <span className="text-xs font-medium text-primary-600">
+                          Duration: {waypoint.estimated_stop_duration_minutes} min
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
         </MapContainer>
       </div>
 
@@ -434,7 +468,8 @@ const InteractiveMap = ({ tripData, routeData, loading = false, className = '' }
           <span>🟢 Current</span>
           <span>🟡 Pickup</span>
           <span>🔴 Delivery</span>
-          {routeCoordinates.length > 3 && <span>🎯 Waypoints</span>}
+          {routeData?.waypoints && routeData.waypoints.some(w => w.waypoint_type === 'fuel_stop') && <span>⛽ Fuel</span>}
+          {routeData?.waypoints && routeData.waypoints.some(w => w.waypoint_type.includes('break')) && <span>☕ Rest</span>}
         </div>
       </div>
     </div>
